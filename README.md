@@ -22,4 +22,8 @@ gh workflow run update.yml --repo NickRoux/homebrew-tap -f version=0.2.0
 ```
 
 The source release workflow generates the formula and its platform checksums.
-The update workflow commits that formula to this tap using its own GitHub token.
+The update workflow commits that formula, verifies installations on macOS and Linux,
+and publishes native Homebrew bottles using its own GitHub token.
+
+Bottles currently cover Apple Silicon on macOS Sequoia and x86-64 Linux. Intel
+Macs and ARM64 Linux install the upstream prebuilt archives through the same formula.
