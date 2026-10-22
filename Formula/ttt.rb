@@ -4,6 +4,12 @@ class Ttt < Formula
   homepage "https://github.com/NickRoux/ttt"
   version "0.1.0"
 
+  bottle do
+    root_url "https://github.com/NickRoux/homebrew-tap/releases/download/ttt-0.1.0"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "6749e30350c326482d9e18f5d7a4320e58015f53d025cf495c6159ca5d7ed8f4"
+    sha256 cellar: :any_skip_relocation, x86_64_linux:  "8d1659f0ab66656741a12e17ba3ec8e6632f9aa7466f744e03cec19c57510081"
+  end
+
   on_macos do
     on_arm do
       url "https://github.com/NickRoux/ttt/releases/download/v0.1.0/ttt_0.1.0_darwin_arm64.tar.gz"
