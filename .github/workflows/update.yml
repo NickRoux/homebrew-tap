@@ -66,6 +66,60 @@ jobs:
           brew tap nickroux/tap
           git -C "$(brew --repository nickroux/tap)" fetch origin main
           git -C "$(brew --repository nickroux/tap)" checkout --detach origin/main
-          brew install nickroux/tap/ttt
+          brew install --build-bottle nickroux/tap/ttt
           brew test nickroux/tap/ttt
           test "$(ttt --version)" = "ttt $VERSION"
+      - name: Build Homebrew bottle
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p bottles
+          cd bottles
+          brew bottle --json --no-rebuild \
+            --root-url "https://github.com/NickRoux/homebrew-tap/releases/download/ttt-$VERSION" \
+            nickroux/tap/ttt
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for metadata in Path(".").glob("*.json"):
+              for package in json.loads(metadata.read_text()).values():
+                  for bottle in package["bottle"]["tags"].values():
+                      Path(bottle["local_filename"]).rename(bottle["filename"])
+          PY
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: bottle-${{ matrix.os }}
+          path: bottles/*
+          if-no-files-found: error
+
+  publish-bottles:
+    needs: install-test
+    runs-on: macos-15
+    steps:
+      - uses: Homebrew/actions/setup-homebrew@0fdc2c96a16d9f945f7e1577784302fd27a549a9
+        with:
+          stable: true
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          path: bottles
+          merge-multiple: true
+      - name: Publish bottles and update the formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          HOMEBREW_NO_ANALYTICS: "1"
+        run: |
+          brew tap nickroux/tap
+          git -C "$(brew --repository nickroux/tap)" fetch origin main
+          git -C "$(brew --repository nickroux/tap)" checkout --detach origin/main
+          cd bottles
+          brew bottle --merge --write --no-commit *.json
+          gh release create "ttt-$VERSION" *.bottle.tar.gz --repo NickRoux/homebrew-tap \
+            --title "ttt $VERSION Homebrew bottles" --notes "Native Homebrew binary packages for ttt $VERSION."
+          cd "$(brew --repository nickroux/tap)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/ttt.rb
+          git commit -m "Add Homebrew bottles for ttt $VERSION"
+          gh auth setup-git
+          git push origin HEAD:main
